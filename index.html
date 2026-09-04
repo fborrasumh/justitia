@@ -1,0 +1,1351 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JustitIA · Corrección calibrada y auditoría de equidad</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --papel:#F1F4F3;
+  --sup:#FFFFFF;
+  --tinta:#152A2B;
+  --grafito:#5B6E70;
+  --linea:#D6DEDC;
+  --linea-fuerte:#B6C4C2;
+  --medida:#0F6E63;
+  --medida-suave:#E3F0ED;
+  --divergencia:#A8402F;
+  --divergencia-suave:#F7E6E2;
+  --frontera:#B07A18;
+  --frontera-suave:#FAF0DA;
+  --sans:"IBM Plex Sans",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+  --serif:"IBM Plex Serif",Georgia,serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--papel);color:var(--tinta);
+  font-family:var(--sans);font-size:15px;line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{font-family:var(--serif);font-weight:500;line-height:1.2;margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--medida)}
+
+/* ---------- estructura ---------- */
+.marco{display:grid;grid-template-columns:236px minmax(0,1fr);min-height:100vh}
+.rail{
+  background:var(--sup);border-right:1px solid var(--linea);
+  padding:22px 0 40px;position:sticky;top:0;height:100vh;overflow-y:auto;
+}
+.marca{padding:0 22px 20px;border-bottom:1px solid var(--linea);margin-bottom:14px}
+.marca h1{font-size:25px;letter-spacing:-.015em}
+.marca h1 span{color:var(--medida)}
+.marca p{margin:5px 0 0;font-size:12.5px;color:var(--grafito);line-height:1.4}
+.pasos{list-style:none;margin:0;padding:0}
+.paso{
+  display:grid;grid-template-columns:26px 1fr;gap:10px;align-items:baseline;
+  padding:9px 22px;cursor:pointer;border-left:3px solid transparent;color:var(--grafito);
+}
+.paso:hover{background:var(--papel)}
+.paso[aria-current="true"]{border-left-color:var(--medida);color:var(--tinta);background:var(--medida-suave)}
+.paso .n{font-family:var(--mono);font-size:12px;color:var(--linea-fuerte)}
+.paso[aria-current="true"] .n{color:var(--medida)}
+.paso .t{font-size:14px}
+.paso .sub{grid-column:2;font-size:11.5px;font-family:var(--mono);color:var(--grafito);opacity:.85}
+.rail-pie{padding:18px 22px 0;margin-top:18px;border-top:1px solid var(--linea);font-size:11.5px;color:var(--grafito)}
+
+.lienzo{padding:34px 40px 90px;max-width:1080px}
+.vista{display:none}
+.vista.on{display:block}
+.cabecera{margin-bottom:26px}
+.cabecera h2{font-size:27px;letter-spacing:-.01em}
+.cabecera p{margin:8px 0 0;max-width:66ch;color:var(--grafito)}
+
+.bloque{background:var(--sup);border:1px solid var(--linea);border-radius:3px;padding:22px;margin-bottom:18px}
+.bloque > h3{font-size:17px;margin-bottom:4px}
+.bloque > h3 + p{margin:0 0 16px;color:var(--grafito);font-size:13.5px;max-width:64ch}
+
+label{display:block;font-size:13px;color:var(--grafito);margin-bottom:5px}
+input[type=text],input[type=password],input[type=number],select,textarea{
+  width:100%;padding:8px 10px;background:var(--papel);
+  border:1px solid var(--linea-fuerte);border-radius:2px;
+}
+textarea{font-family:var(--sans);line-height:1.5;resize:vertical}
+input:focus,select:focus,textarea:focus,button:focus-visible{
+  outline:2px solid var(--medida);outline-offset:1px;
+}
+.campo{margin-bottom:14px}
+.fila{display:flex;gap:14px;flex-wrap:wrap}
+.fila > *{flex:1;min-width:180px}
+
+.btn{
+  background:var(--medida);color:#fff;border:1px solid var(--medida);
+  padding:8px 16px;border-radius:2px;cursor:pointer;font-weight:500;
+}
+.btn:hover{background:#0B564D}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+.btn.sec{background:transparent;color:var(--tinta);border-color:var(--linea-fuerte)}
+.btn.sec:hover{background:var(--papel)}
+.btn.peq{padding:5px 11px;font-size:13px}
+.acciones{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:6px}
+
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{text-align:left;font-weight:500;color:var(--grafito);font-size:12px;padding:7px 9px;border-bottom:1px solid var(--linea-fuerte)}
+td{padding:8px 9px;border-bottom:1px solid var(--linea);vertical-align:top}
+tr:last-child td{border-bottom:none}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+.aviso{border-left:3px solid var(--frontera);background:var(--frontera-suave);padding:11px 14px;font-size:13.5px;margin:14px 0;border-radius:0 2px 2px 0}
+.aviso.grave{border-left-color:var(--divergencia);background:var(--divergencia-suave)}
+.aviso.ok{border-left-color:var(--medida);background:var(--medida-suave)}
+.aviso p{margin:0}
+.aviso p + p{margin-top:7px}
+
+.pastilla{display:inline-block;font-family:var(--mono);font-size:11px;padding:2px 7px;border-radius:2px;background:var(--papel);border:1px solid var(--linea-fuerte);color:var(--grafito)}
+.pastilla.viva{background:var(--medida-suave);border-color:var(--medida);color:var(--medida)}
+.pastilla.mal{background:var(--divergencia-suave);border-color:var(--divergencia);color:var(--divergencia)}
+.pastilla.med{background:var(--frontera-suave);border-color:var(--frontera);color:var(--frontera)}
+
+/* ---------- la balanza: elemento central ---------- */
+.balanza{border:1px solid var(--linea-fuerte);border-radius:3px;overflow:hidden;margin-top:16px}
+.balanza-cab{display:grid;grid-template-columns:1fr 96px 1fr;background:var(--papel);border-bottom:1px solid var(--linea-fuerte)}
+.balanza-cab div{padding:8px 12px;font-size:12px;color:var(--grafito)}
+.balanza-cab div:nth-child(2){text-align:center;border-left:1px solid var(--linea);border-right:1px solid var(--linea)}
+.balanza-cab div:last-child{text-align:right}
+.brazo{display:grid;grid-template-columns:1fr 96px 1fr;align-items:center;border-bottom:1px solid var(--linea)}
+.brazo:last-child{border-bottom:none}
+.brazo .lado{padding:11px 12px}
+.brazo .lado.der{text-align:right}
+.brazo .crit{font-size:13px}
+.brazo .val{font-family:var(--mono);font-size:19px;font-variant-numeric:tabular-nums}
+.brazo .fiel{
+  position:relative;height:100%;min-height:52px;
+  border-left:1px solid var(--linea);border-right:1px solid var(--linea);
+  display:flex;align-items:center;justify-content:center;
+}
+.brazo .fiel::before{content:"";position:absolute;left:8px;right:8px;height:1px;background:var(--linea)}
+.desvio{position:relative;font-family:var(--mono);font-size:12px;padding:1px 6px;background:var(--sup);border:1px solid var(--linea-fuerte);border-radius:10px}
+.desvio.nulo{color:var(--medida);border-color:var(--medida)}
+.desvio.alto{color:var(--divergencia);border-color:var(--divergencia);font-weight:600}
+.brazo.divergente{background:var(--divergencia-suave)}
+
+.sellado{display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--grafito);padding:11px 14px;background:var(--papel);border:1px dashed var(--linea-fuerte);border-radius:3px}
+.sellado .lacre{width:9px;height:9px;border-radius:50%;background:var(--linea-fuerte)}
+.sellado.listo .lacre{background:var(--medida)}
+.sellado.listo{color:var(--tinta)}
+
+.medidor{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:1px;background:var(--linea);border:1px solid var(--linea);border-radius:3px;overflow:hidden}
+.medidor > div{background:var(--sup);padding:13px 15px}
+.medidor .v{font-family:var(--mono);font-size:23px;font-variant-numeric:tabular-nums;line-height:1.1}
+.medidor .k{font-size:12px;color:var(--grafito);margin-top:3px}
+.medidor .v.bien{color:var(--medida)}
+.medidor .v.mal{color:var(--divergencia)}
+
+.traza{width:100%;height:150px;display:block}
+
+.mapa{overflow-x:auto}
+.mapa table{font-size:12px;min-width:520px}
+.mapa td.celda{text-align:center;font-family:var(--mono);padding:6px 4px;color:#fff;border:1px solid var(--sup)}
+.mapa th.rot{font-size:11px;font-weight:500;max-width:88px}
+
+.lista-trabajos{max-height:330px;overflow-y:auto;border:1px solid var(--linea);border-radius:2px}
+.lista-trabajos table{font-size:13px}
+.lista-trabajos th{position:sticky;top:0;background:var(--sup);z-index:1}
+
+details.doc{border-top:1px solid var(--linea);padding-top:10px;margin-top:10px}
+details.doc summary{cursor:pointer;font-size:13px;color:var(--grafito)}
+.cita{border-left:2px solid var(--linea-fuerte);padding:2px 0 2px 11px;margin:7px 0;font-size:13px;color:var(--grafito);font-style:italic}
+
+.zona{border:1px dashed var(--linea-fuerte);border-radius:3px;padding:26px;text-align:center;color:var(--grafito);background:var(--papel);cursor:pointer}
+.zona:hover,.zona.sobre{border-color:var(--medida);background:var(--medida-suave);color:var(--tinta)}
+
+.progreso{height:3px;background:var(--linea);border-radius:2px;overflow:hidden;margin-top:12px}
+.progreso i{display:block;height:100%;background:var(--medida);transition:width .3s}
+
+#registro{position:fixed;right:18px;bottom:18px;max-width:330px;z-index:60;display:flex;flex-direction:column;gap:8px}
+.nota{background:var(--tinta);color:#fff;padding:10px 14px;border-radius:3px;font-size:13.5px;box-shadow:0 6px 20px rgba(21,42,43,.22)}
+.nota.mal{background:var(--divergencia)}
+
+.oculto{display:none !important}
+@media (max-width:880px){
+  .marco{grid-template-columns:1fr}
+  .rail{position:static;height:auto;border-right:none;border-bottom:1px solid var(--linea)}
+  .pasos{display:flex;overflow-x:auto}
+  .paso{border-left:none;border-bottom:3px solid transparent;white-space:nowrap;padding:9px 15px}
+  .paso[aria-current="true"]{border-bottom-color:var(--medida)}
+  .paso .sub{display:none}
+  .lienzo{padding:22px 18px 70px}
+  .balanza-cab,.brazo{grid-template-columns:1fr 70px 1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
+</style>
+</head>
+<body>
+<div class="marco">
+  <nav class="rail">
+    <div class="marca">
+      <h1>Justit<span>IA</span></h1>
+      <p>Corrección calibrada contra tu propio criterio</p>
+    </div>
+    <ul class="pasos" id="pasos">
+      <li class="paso" data-v="ajustes"><span class="n">0</span><span class="t">Ajustes</span><span class="sub" id="sub-ajustes">sin clave</span></li>
+      <li class="paso" data-v="rubrica"><span class="n">1</span><span class="t">Rúbrica</span><span class="sub" id="sub-rubrica">0 criterios</span></li>
+      <li class="paso" data-v="lote"><span class="n">2</span><span class="t">Lote</span><span class="sub" id="sub-lote">0 trabajos</span></li>
+      <li class="paso" data-v="calibracion"><span class="n">3</span><span class="t">Calibración</span><span class="sub" id="sub-calibracion">0 anclas</span></li>
+      <li class="paso" data-v="correccion"><span class="n">4</span><span class="t">Corrección</span><span class="sub" id="sub-correccion">0 propuestas</span></li>
+      <li class="paso" data-v="equidad"><span class="n">5</span><span class="t">Equidad</span><span class="sub" id="sub-equidad">sin auditar</span></li>
+      <li class="paso" data-v="salida"><span class="n">6</span><span class="t">Salida</span><span class="sub" id="sub-salida">nada firmado</span></li>
+    </ul>
+    <div class="rail-pie">
+      <p style="margin:0 0 8px">Los textos salen cifrados hacia la API de OpenAI. La app no envía nada a ningún otro servidor y guarda el proyecto solo en este navegador.</p>
+      <button class="btn sec peq" id="btn-borrar">Borrar el proyecto</button>
+    </div>
+  </nav>
+
+  <main class="lienzo">
+
+  <!-- ══════════ 0 · AJUSTES ══════════ -->
+  <section class="vista" id="v-ajustes">
+    <div class="cabecera">
+      <h2>Ajustes</h2>
+      <p>La clave se queda en el almacenamiento local de este navegador. Ni se sube ni se comparte.</p>
+    </div>
+
+    <div class="bloque">
+      <h3>Clave de OpenAI</h3>
+      <p>Se guarda como <code>ia_openai_key</code>, la misma que usan el resto de tus aplicaciones.</p>
+      <div class="fila">
+        <div class="campo"><label for="in-clave">Clave</label><input type="password" id="in-clave" placeholder="sk-..." autocomplete="off"></div>
+        <div class="campo" style="flex:0 0 auto;align-self:end"><button class="btn" id="btn-clave">Guardar la clave</button></div>
+      </div>
+      <div id="estado-clave"></div>
+    </div>
+
+    <div class="bloque">
+      <h3>Modelo</h3>
+      <p>El coste sube y la varianza baja según subes de familia. Para calibrar conviene el mismo modelo que después corregirá: cambiarlo a mitad invalida el acuerdo medido.</p>
+      <div class="fila">
+        <div class="campo">
+          <label for="in-modelo">Modelo que corrige</label>
+          <select id="in-modelo">
+            <option value="gpt-4o-mini">gpt-4o-mini · económico, suficiente para rúbricas nítidas</option>
+            <option value="gpt-5.6-luna">gpt-5.6-luna · rápido, razonamiento ligero</option>
+            <option value="gpt-5.6-terra">gpt-5.6-terra · equilibrado, el recomendado</option>
+            <option value="gpt-5.6-sol">gpt-5.6-sol · máxima capacidad, trabajos largos o argumentativos</option>
+          </select>
+        </div>
+        <div class="campo" style="flex:0 0 150px">
+          <label for="in-temp">Temperatura</label>
+          <input type="number" id="in-temp" min="0" max="1" step="0.1" value="0.2">
+        </div>
+      </div>
+      <div class="aviso" id="aviso-modelo"><p>La familia gpt-5.6 ignora la temperatura y ajusta sola su esfuerzo de razonamiento. La app lo detecta y adapta la llamada.</p></div>
+    </div>
+
+    <div class="bloque">
+      <h3>Protección de datos</h3>
+      <p>Los trabajos de tus estudiantes son datos personales. Antes de que nada salga del navegador puedes sustituir lo que identifica a la persona.</p>
+      <div class="campo"><label><input type="checkbox" id="in-anon" checked style="width:auto;margin-right:7px">Sustituir nombres, correos, DNI y números de expediente antes de enviar</label></div>
+      <div class="campo">
+        <label for="in-nombres">Nombres que hay que sustituir, uno por línea. Los nombres de archivo se añaden solos.</label>
+        <textarea id="in-nombres" rows="3" placeholder="María Ferrándiz&#10;Álvaro Ruiz-Peinado"></textarea>
+      </div>
+      <div class="acciones"><button class="btn sec" id="btn-anon">Guardar</button><span id="estado-anon" class="pastilla"></span></div>
+    </div>
+  </section>
+
+  <!-- ══════════ 1 · RÚBRICA ══════════ -->
+  <section class="vista" id="v-rubrica">
+    <div class="cabecera">
+      <h2>Rúbrica</h2>
+      <p>Cuanto más operativo sea cada criterio, antes te aprende la máquina. Un criterio que tú mismo aplicas de forma distinta según el día no se puede calibrar, y eso lo verás medido en el paso 3.</p>
+    </div>
+
+    <div class="bloque">
+      <h3>Contexto de la corrección</h3>
+      <div class="fila">
+        <div class="campo"><label for="in-asig">Asignatura</label><input type="text" id="in-asig" placeholder="Bioestadística"></div>
+        <div class="campo"><label for="in-tarea">Tarea</label><input type="text" id="in-tarea" placeholder="Informe de análisis de un conjunto de datos"></div>
+      </div>
+      <div class="campo"><label for="in-nivel">Nivel y expectativa</label><input type="text" id="in-nivel" placeholder="Segundo de grado. Se espera dominio de contraste de hipótesis, no de modelos mixtos."></div>
+    </div>
+
+    <div class="bloque">
+      <h3>Criterios</h3>
+      <p>Los pesos se normalizan solos. La nota es la suma ponderada, calculada igual para ti y para la máquina, de modo que la comparación sea limpia.</p>
+      <div id="criterios"></div>
+      <div class="acciones">
+        <button class="btn sec" id="btn-add-crit">Añadir un criterio</button>
+        <button class="btn sec" id="btn-rubrica-demo">Cargar una rúbrica de ejemplo</button>
+        <span class="pastilla" id="peso-total">peso 0%</span>
+      </div>
+    </div>
+
+    <div class="bloque">
+      <h3>Redactar la rúbrica desde el enunciado</h3>
+      <p>Pega el enunciado de la tarea y la máquina propone criterios, pesos y descriptores. Después los corriges tú, que es donde está el criterio.</p>
+      <div class="campo"><textarea id="in-enunciado" rows="5" placeholder="Pega aquí el enunciado tal como lo recibieron los estudiantes."></textarea></div>
+      <div class="acciones"><button class="btn" id="btn-gen-rubrica">Proponer criterios</button></div>
+    </div>
+  </section>
+
+  <!-- ══════════ 2 · LOTE ══════════ -->
+  <section class="vista" id="v-lote">
+    <div class="cabecera">
+      <h2>Lote</h2>
+      <p>Sube todas las entregas. La app las baraja: corregir en orden alfabético mete tu cansancio dentro de la calibración como si fuera criterio.</p>
+    </div>
+
+    <div class="bloque">
+      <h3>Entregas</h3>
+      <p>Acepta .txt, .md, .docx y .pdf. Todo se lee en el navegador.</p>
+      <div class="zona" id="zona"><strong>Suelta aquí las entregas</strong><br>o pulsa para elegirlas<input type="file" id="in-archivos" multiple accept=".txt,.md,.docx,.pdf" class="oculto"></div>
+      <div class="progreso oculto" id="prog-lectura"><i style="width:0"></i></div>
+      <div id="resumen-lote"></div>
+      <div class="lista-trabajos oculto" id="lista-trabajos"></div>
+      <div class="acciones"><button class="btn sec peq" id="btn-rebarajar">Volver a barajar</button><button class="btn sec peq" id="btn-vaciar">Vaciar el lote</button></div>
+    </div>
+
+    <div class="bloque">
+      <h3>Tamaño de la muestra de calibración</h3>
+      <p>Marca cuántos trabajos vas a corregir tú a mano. No es la mitad del trabajo repartida: es el ancla contra la que se mide todo lo demás. Con una rúbrica nítida suele bastar la cuarta parte, y la app te avisa en cuanto el acuerdo se estabiliza.</p>
+      <div class="fila">
+        <div class="campo"><label for="in-muestra">Trabajos que corriges tú</label><input type="number" id="in-muestra" min="4" value="8"></div>
+        <div class="campo"><label for="in-tol">Tolerancia de acuerdo, en puntos sobre 10</label><input type="number" id="in-tol" min="0.1" max="2" step="0.1" value="0.5"></div>
+      </div>
+      <div class="acciones"><button class="btn" id="btn-fijar-muestra">Fijar la muestra y empezar</button></div>
+    </div>
+  </section>
+
+  <!-- ══════════ 3 · CALIBRACIÓN ══════════ -->
+  <section class="vista" id="v-calibracion">
+    <div class="cabecera">
+      <h2>Calibración</h2>
+      <p>El orden importa y no se puede saltar. Primero la máquina predice a ciegas y su predicción queda sellada. Después pones tu nota. Solo entonces se abre la comparación. Si vieras la predicción antes, la estarías firmando en lugar de contrastarla.</p>
+    </div>
+
+    <div id="cal-vacia" class="aviso"><p>Todavía no hay muestra fijada. Vuelve al paso 2, sube el lote y fija cuántos trabajos corriges tú.</p></div>
+
+    <div id="cal-panel" class="oculto">
+      <div class="medidor" id="medidor-cal"></div>
+      <div id="cal-parada"></div>
+
+      <div class="bloque">
+        <h3 id="cal-titulo">Trabajo</h3>
+        <p id="cal-meta"></p>
+        <details class="doc"><summary>Ver el texto de la entrega</summary><div id="cal-texto" style="max-height:300px;overflow-y:auto;margin-top:11px;font-size:13.5px;white-space:pre-wrap"></div></details>
+
+        <div style="margin-top:18px">
+          <div class="sellado" id="cal-sello"><span class="lacre"></span><span id="cal-sello-txt">La predicción todavía no se ha hecho.</span></div>
+          <div class="acciones"><button class="btn" id="btn-predecir">Predecir a ciegas y sellar</button></div>
+        </div>
+
+        <div id="cal-mis-notas" class="oculto" style="margin-top:22px">
+          <h3 style="font-size:15px;margin-bottom:9px">Tu corrección</h3>
+          <div id="cal-inputs"></div>
+          <div class="campo" style="margin-top:12px"><label for="cal-coment">Comentario para el estudiante, si quieres dejarlo escrito</label><textarea id="cal-coment" rows="2"></textarea></div>
+          <div class="acciones"><button class="btn" id="btn-revelar">Guardar mi nota y abrir la comparación</button><span class="pastilla num" id="cal-mi-total">—</span></div>
+        </div>
+
+        <div id="cal-balanza"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 4 · CORRECCIÓN ══════════ -->
+  <section class="vista" id="v-correccion">
+    <div class="cabecera">
+      <h2>Corrección</h2>
+      <p>La máquina puntúa el lote entero, no la mitad que te falta. Sobre los que ya corregiste vuelve a pasar con validación cruzada, dejando fuera el propio trabajo, y eso alimenta la auditoría del paso 5. Sobre el resto propone, y tú revisas por triaje.</p>
+    </div>
+
+    <div id="corr-bloqueada" class="aviso"><p>Antes hay que calibrar. Necesitas al menos cuatro anclas para que el acuerdo signifique algo.</p></div>
+
+    <div id="corr-panel" class="oculto">
+      <div class="bloque">
+        <h3>Pasar el lote</h3>
+        <div class="acciones">
+          <button class="btn" id="btn-corregir">Corregir los <span id="n-ciegos">0</span> pendientes</button>
+          <button class="btn sec" id="btn-loo">Reauditar mis <span id="n-anclas2">0</span> correcciones</button>
+          <button class="btn sec" id="btn-parar" disabled>Parar</button>
+        </div>
+        <div class="progreso oculto" id="prog-corr"><i style="width:0"></i></div>
+        <div id="corr-estado"></div>
+      </div>
+
+      <div class="bloque">
+        <h3>Triaje</h3>
+        <p>Estas son las que hay que mirar antes de firmar: confianza baja, nota pegada a una frontera con consecuencias, o criterios que se contradicen dentro del mismo trabajo. El resto se firma en bloque.</p>
+        <div id="triaje"></div>
+      </div>
+
+      <div class="bloque">
+        <h3>Propuestas</h3>
+        <div id="tabla-propuestas"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 5 · EQUIDAD ══════════ -->
+  <section class="vista" id="v-equidad">
+    <div class="cabecera">
+      <h2>Equidad</h2>
+      <p>Aquí no se corrige a nadie: se mira si el criterio fue el mismo para todos. Esto es diagnóstico tuyo y no debería salir de este equipo.</p>
+    </div>
+
+    <div id="eq-vacia" class="aviso"><p>Necesita la reauditoría del paso 4 para poder comparar tus notas con una segunda lectura del mismo criterio.</p></div>
+
+    <div id="eq-panel" class="oculto">
+      <div class="bloque">
+        <h3>Cobertura del rango</h3>
+        <div id="eq-cobertura"></div>
+      </div>
+
+      <div class="bloque">
+        <h3>Deriva a lo largo de tu corrección</h3>
+        <p>Si el residuo crece o decrece con la posición, el criterio se movió mientras corregías. Es el sesgo más común y el único que nadie puede ver en sí mismo.</p>
+        <svg class="traza" id="traza-deriva" viewBox="0 0 720 150" preserveAspectRatio="none" role="img" aria-label="Residuo de cada trabajo frente a su posición en el orden de corrección"></svg>
+        <div id="eq-deriva"></div>
+      </div>
+
+      <div class="bloque">
+        <h3>Divergencias</h3>
+        <p>Ordenadas por distancia. Cada una tiene dos lecturas posibles: la máquina se equivocó, o dos trabajos equivalentes recibieron notas distintas. La segunda es la que importa.</p>
+        <div id="eq-divergencias"></div>
+      </div>
+
+      <div class="bloque">
+        <h3>Mapa de la clase</h3>
+        <p>Criterio por trabajo. Las columnas oscuras señalan lo que falló la cohorte entera, y eso es contenido para la próxima clase, no una nota.</p>
+        <div class="mapa" id="mapa"></div>
+      </div>
+
+      <div class="bloque">
+        <h3>Informe privado</h3>
+        <p>Descarga en local el informe de deriva y divergencias. No va dentro de la exportación de notas: es material de diagnóstico, no prueba documental.</p>
+        <div class="acciones"><button class="btn sec" id="btn-informe">Guardar el informe en este equipo</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 6 · SALIDA ══════════ -->
+  <section class="vista" id="v-salida">
+    <div class="cabecera">
+      <h2>Salida</h2>
+      <p>La nota la firmas tú. La máquina propone y deja escrito por qué, con la cita exacta que lo sostiene, para que la revisión se pueda responder con el trabajo delante.</p>
+    </div>
+
+    <div class="bloque">
+      <h3>Firmar</h3>
+      <p>Al firmar, la propuesta pasa a ser tu nota. Puedes cambiar cualquiera antes o después.</p>
+      <div class="acciones">
+        <button class="btn" id="btn-firmar">Firmar las propuestas sin marcar en triaje</button>
+        <span class="pastilla" id="estado-firma">0 firmadas</span>
+      </div>
+    </div>
+
+    <div class="bloque">
+      <h3>Exportar</h3>
+      <div class="acciones">
+        <button class="btn sec" id="btn-csv">Notas en CSV</button>
+        <button class="btn sec" id="btn-docx">Retroalimentación en Word</button>
+        <button class="btn sec" id="btn-json">Proyecto completo en JSON</button>
+      </div>
+    </div>
+
+    <div class="bloque">
+      <h3>Acta</h3>
+      <div id="tabla-acta"></div>
+    </div>
+  </section>
+
+  </main>
+</div>
+
+<div id="registro"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
+<script>
+(function(){
+"use strict";
+
+/* ═══════════════ estado ═══════════════ */
+const S = {
+  clave:"", modelo:"gpt-4o-mini", temp:0.2,
+  anon:true, nombres:[],
+  asig:"", tarea:"", nivel:"",
+  criterios:[],
+  trabajos:[],          // {id,nombre,texto,orden,rol,prof,pred,loo,firmada,notaFinal}
+  muestra:8, tol:0.5,
+  idx:0,                // trabajo actual en calibración
+  parar:false
+};
+const $ = s=>document.querySelector(s);
+const $$ = s=>[...document.querySelectorAll(s)];
+const uid = ()=>Math.random().toString(36).slice(2,10);
+const round2 = n=>Math.round(n*100)/100;
+
+/* ═══════════════ persistencia ═══════════════ */
+let db=null;
+function abrirDB(){
+  return new Promise(res=>{
+    const r = indexedDB.open("justitia",1);
+    r.onupgradeneeded = e=>{ e.target.result.createObjectStore("proyecto"); };
+    r.onsuccess = e=>{ db=e.target.result; res(); };
+    r.onerror = ()=>res();
+  });
+}
+let guardando=null;
+function guardar(){
+  if(!db) return;
+  clearTimeout(guardando);
+  guardando = setTimeout(()=>{
+    try{
+      const tx = db.transaction("proyecto","readwrite");
+      const copia = JSON.parse(JSON.stringify(S));
+      delete copia.clave;
+      tx.objectStore("proyecto").put(copia,"actual");
+    }catch(e){ console.warn(e); }
+  },400);
+}
+function cargar(){
+  return new Promise(res=>{
+    if(!db) return res();
+    const r = db.transaction("proyecto","readonly").objectStore("proyecto").get("actual");
+    r.onsuccess = ()=>{ if(r.result) Object.assign(S,r.result); res(); };
+    r.onerror = ()=>res();
+  });
+}
+
+/* ═══════════════ avisos ═══════════════ */
+function aviso(txt,mal){
+  const d=document.createElement("div");
+  d.className="nota"+(mal?" mal":"");
+  d.textContent=txt;
+  $("#registro").appendChild(d);
+  setTimeout(()=>{d.style.opacity="0";d.style.transition="opacity .4s";setTimeout(()=>d.remove(),400);},3600);
+}
+
+/* ═══════════════ llamada al modelo ═══════════════ */
+const ES_56 = m => /^gpt-5\.6/.test(m);
+
+async function llamar(mensajes,{json=true,maxTok=1600}={}){
+  if(!S.clave) throw new Error("Falta la clave de OpenAI. Está en el paso 0.");
+  const cuerpo = { model:S.modelo, messages:mensajes };
+  if(ES_56(S.modelo)){
+    cuerpo.max_completion_tokens = maxTok;              // la familia 5.6 no acepta max_tokens
+  }else{
+    cuerpo.max_tokens = maxTok;
+    cuerpo.temperature = S.temp;
+  }
+  if(json) cuerpo.response_format = {type:"json_object"};
+
+  let r = await fetch("https://api.openai.com/v1/chat/completions",{
+    method:"POST",
+    headers:{"Content-Type":"application/json","Authorization":"Bearer "+S.clave},
+    body:JSON.stringify(cuerpo)
+  });
+
+  // Si el modelo rechaza algún parámetro, se reintenta con lo mínimo imprescindible.
+  if(!r.ok && r.status===400){
+    const minimo = { model:S.modelo, messages:mensajes };
+    if(json) minimo.response_format = {type:"json_object"};
+    r = await fetch("https://api.openai.com/v1/chat/completions",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+S.clave},
+      body:JSON.stringify(minimo)
+    });
+  }
+  if(!r.ok){
+    let d=""; try{ d=(await r.json()).error?.message||""; }catch(e){}
+    throw new Error("La API respondió "+r.status+(d?": "+d:""));
+  }
+  const data = await r.json();
+  const txt = (data.choices?.[0]?.message?.content||"").trim();
+  if(!json) return txt;
+  const limpio = txt.replace(/^```(?:json)?/,"").replace(/```$/,"").trim();
+  try{ return JSON.parse(limpio); }
+  catch(e){
+    const a=limpio.indexOf("{"), b=limpio.lastIndexOf("}");
+    if(a>=0&&b>a) return JSON.parse(limpio.slice(a,b+1));
+    throw new Error("El modelo no devolvió JSON válido.");
+  }
+}
+
+/* ═══════════════ anonimización ═══════════════ */
+function anonimizar(texto,nombreArchivo){
+  if(!S.anon) return texto;
+  let t = texto;
+  t = t.replace(/[\w.+-]+@[\w-]+\.[\w.]+/g,"[CORREO]");
+  t = t.replace(/\b\d{7,8}[-\s]?[A-HJ-NP-TV-Z]\b/gi,"[DNI]");
+  t = t.replace(/\b[XYZ][-\s]?\d{7}[-\s]?[A-HJ-NP-TV-Z]\b/gi,"[NIE]");
+  t = t.replace(/\b(?:expediente|nº|num\.?|n\.º)\s*:?\s*\d{4,}\b/gi,"[EXPEDIENTE]");
+  const nombres = [...S.nombres];
+  // el nombre del archivo casi siempre lleva el del estudiante
+  (nombreArchivo||"").replace(/\.[a-z]+$/i,"").split(/[_\-.,()\d]+/).forEach(p=>{
+    if(p.trim().length>=3) nombres.push(p.trim());
+  });
+  nombres.filter(Boolean).sort((a,b)=>b.length-a.length).forEach(n=>{
+    try{
+      const esc = n.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+      t = t.replace(new RegExp("\\b"+esc+"\\b","gi"),"[ESTUDIANTE]");
+    }catch(e){}
+  });
+  return t;
+}
+
+/* ═══════════════ rúbrica ═══════════════ */
+function pesoTotal(){ return S.criterios.reduce((a,c)=>a+(+c.peso||0),0); }
+function pesoNorm(c){ const t=pesoTotal(); return t>0 ? (+c.peso||0)/t : 0; }
+function totalPonderado(mapa){
+  let s=0;
+  S.criterios.forEach(c=>{ const v = mapa?.[c.id]; if(typeof v==="number") s += v*pesoNorm(c); });
+  return round2(s);
+}
+
+function pintarCriterios(){
+  const cont = $("#criterios");
+  cont.innerHTML = "";
+  if(!S.criterios.length){
+    cont.innerHTML = '<p style="color:var(--grafito);font-size:13.5px">Aún no hay criterios. Añádelos a mano o pega el enunciado abajo.</p>';
+  }
+  S.criterios.forEach((c,i)=>{
+    const d = document.createElement("div");
+    d.style.cssText = "border:1px solid var(--linea);border-radius:2px;padding:14px;margin-bottom:11px";
+    d.innerHTML = `
+      <div class="fila">
+        <div class="campo" style="flex:3"><label>Criterio ${i+1}</label><input type="text" data-k="nombre" value="${esc(c.nombre)}" placeholder="Interpretación de los resultados"></div>
+        <div class="campo" style="flex:0 0 110px"><label>Peso</label><input type="number" data-k="peso" min="0" step="1" value="${c.peso}"></div>
+        <div class="campo" style="flex:0 0 90px;align-self:end"><button class="btn sec peq" data-del>Quitar</button></div>
+      </div>
+      <div class="campo" style="margin-bottom:0"><label>Qué distingue un 10 de un 5 y de un 2</label><textarea data-k="descriptor" rows="2" placeholder="10: identifica el supuesto violado y ajusta el método. 5: aplica el método correcto sin justificarlo. 2: confunde significación con relevancia.">${esc(c.descriptor||"")}</textarea></div>`;
+    d.querySelectorAll("[data-k]").forEach(el=>{
+      el.addEventListener("input",()=>{
+        const k = el.dataset.k;
+        S.criterios[i][k] = k==="peso" ? (+el.value||0) : el.value;
+        if(k==="peso") $("#peso-total").textContent = "peso "+pesoTotal()+"%";
+        guardar(); subtitulos();
+      });
+    });
+    d.querySelector("[data-del]").addEventListener("click",()=>{
+      S.criterios.splice(i,1); pintarCriterios(); guardar(); subtitulos();
+    });
+    cont.appendChild(d);
+  });
+  $("#peso-total").textContent = "peso "+pesoTotal()+"%";
+}
+const esc = s=>String(s==null?"":s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
+
+$("#btn-add-crit").addEventListener("click",()=>{
+  S.criterios.push({id:"c"+uid(),nombre:"",peso:25,descriptor:""});
+  pintarCriterios(); guardar(); subtitulos();
+});
+$("#btn-rubrica-demo").addEventListener("click",()=>{
+  S.criterios = [
+    {id:"c"+uid(),nombre:"Planteamiento y pregunta",peso:20,descriptor:"10: la pregunta es contrastable y el diseño la responde. 5: pregunta correcta pero diseño que no la responde. 2: describe datos sin pregunta."},
+    {id:"c"+uid(),nombre:"Método y supuestos",peso:30,descriptor:"10: comprueba supuestos y justifica la técnica. 5: técnica adecuada sin comprobación. 2: técnica que no corresponde a la escala de los datos."},
+    {id:"c"+uid(),nombre:"Interpretación",peso:30,descriptor:"10: separa significación de relevancia y cuantifica la incertidumbre. 5: lee el valor p correctamente y nada más. 2: concluye causalidad desde una asociación."},
+    {id:"c"+uid(),nombre:"Comunicación",peso:20,descriptor:"10: tablas y figuras autoexplicativas, prosa precisa. 5: correcto pero con figuras sin leyenda. 2: ilegible o sin estructura."}
+  ];
+  pintarCriterios(); guardar(); subtitulos(); aviso("Rúbrica de ejemplo cargada.");
+});
+
+$("#btn-gen-rubrica").addEventListener("click",async()=>{
+  const en = $("#in-enunciado").value.trim();
+  if(!en) return aviso("Pega antes el enunciado.",true);
+  const b = $("#btn-gen-rubrica"); b.disabled=true; b.textContent="Redactando...";
+  try{
+    const r = await llamar([
+      {role:"system",content:"Eres un experto en evaluación universitaria. Devuelves solo JSON."},
+      {role:"user",content:`A partir de este enunciado propón entre 3 y 6 criterios de evaluación con peso porcentual que sume 100 y un descriptor que distinga el 10, el 5 y el 2 en términos observables en el texto del estudiante.
+
+Asignatura: ${S.asig||"no indicada"}
+Nivel: ${S.nivel||"no indicado"}
+
+ENUNCIADO:
+${en.slice(0,6000)}
+
+Formato: {"criterios":[{"nombre":"...","peso":25,"descriptor":"10: ... 5: ... 2: ..."}]}`}
+    ],{maxTok:1400});
+    if(Array.isArray(r.criterios)&&r.criterios.length){
+      S.criterios = r.criterios.map(c=>({id:"c"+uid(),nombre:c.nombre||"",peso:+c.peso||20,descriptor:c.descriptor||""}));
+      pintarCriterios(); guardar(); subtitulos(); aviso("Criterios propuestos. Revísalos.");
+    }else aviso("No se han podido extraer criterios.",true);
+  }catch(e){ aviso(e.message,true); }
+  b.disabled=false; b.textContent="Proponer criterios";
+});
+
+/* ═══════════════ lectura de archivos ═══════════════ */
+async function leerArchivo(f){
+  const ext = f.name.toLowerCase().split(".").pop();
+  if(ext==="txt"||ext==="md") return await f.text();
+  if(ext==="docx"){
+    const buf = await f.arrayBuffer();
+    const r = await window.mammoth.extractRawText({arrayBuffer:buf});
+    return r.value;
+  }
+  if(ext==="pdf"){
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    const buf = await f.arrayBuffer();
+    const doc = await pdfjsLib.getDocument({data:buf}).promise;
+    let t="";
+    for(let i=1;i<=doc.numPages;i++){
+      const p = await doc.getPage(i);
+      const c = await p.getTextContent();
+      t += c.items.map(it=>it.str).join(" ")+"\n\n";
+    }
+    return t;
+  }
+  throw new Error("Formato no admitido: "+ext);
+}
+
+function barajar(a){
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+async function ingerir(archivos){
+  const barra = $("#prog-lectura"); barra.classList.remove("oculto");
+  let n=0;
+  for(const f of archivos){
+    try{
+      const texto = await leerArchivo(f);
+      if(texto.trim().length<40){ aviso("Casi vacío, se omite: "+f.name,true); }
+      else S.trabajos.push({
+        id:uid(), nombre:f.name, texto:texto.trim(),
+        rol:"ciego", prof:null, pred:null, loo:null, firmada:false, notaFinal:null, marcado:false
+      });
+    }catch(e){ aviso(f.name+": "+e.message,true); }
+    n++; barra.querySelector("i").style.width = (n/archivos.length*100)+"%";
+  }
+  barajar(S.trabajos);
+  S.trabajos.forEach((t,i)=>t.orden=i+1);
+  setTimeout(()=>barra.classList.add("oculto"),500);
+  pintarLote(); guardar(); subtitulos();
+}
+
+function pintarLote(){
+  const r = $("#resumen-lote"), l = $("#lista-trabajos");
+  if(!S.trabajos.length){ r.innerHTML=""; l.classList.add("oculto"); return; }
+  const pal = S.trabajos.map(t=>t.texto.split(/\s+/).length);
+  const med = Math.round(pal.reduce((a,b)=>a+b,0)/pal.length);
+  r.innerHTML = `<div class="medidor" style="margin:14px 0">
+    <div><div class="v">${S.trabajos.length}</div><div class="k">entregas</div></div>
+    <div><div class="v">${med}</div><div class="k">palabras de media</div></div>
+    <div><div class="v">${Math.min(...pal)}–${Math.max(...pal)}</div><div class="k">rango</div></div>
+    <div><div class="v">${S.trabajos.filter(t=>t.rol==="ancla").length}</div><div class="k">en la muestra</div></div>
+  </div>`;
+  l.classList.remove("oculto");
+  l.innerHTML = `<table><thead><tr><th style="width:52px">Orden</th><th>Entrega</th><th style="width:96px">Palabras</th><th style="width:118px">Papel</th></tr></thead><tbody>
+    ${S.trabajos.map(t=>`<tr><td class="num">${t.orden}</td><td>${esc(t.nombre)}</td><td class="num">${t.texto.split(/\s+/).length}</td>
+    <td><span class="pastilla ${t.rol==="ancla"?"viva":""}">${t.rol==="ancla"?"la corriges tú":"a ciegas"}</span></td></tr>`).join("")}
+  </tbody></table>`;
+}
+
+$("#zona").addEventListener("click",()=>$("#in-archivos").click());
+$("#in-archivos").addEventListener("change",e=>{ ingerir([...e.target.files]); e.target.value=""; });
+["dragover","dragenter"].forEach(ev=>$("#zona").addEventListener(ev,e=>{e.preventDefault();$("#zona").classList.add("sobre");}));
+["dragleave","drop"].forEach(ev=>$("#zona").addEventListener(ev,e=>{e.preventDefault();$("#zona").classList.remove("sobre");}));
+$("#zona").addEventListener("drop",e=>{ if(e.dataTransfer.files.length) ingerir([...e.dataTransfer.files]); });
+$("#btn-rebarajar").addEventListener("click",()=>{
+  if(S.trabajos.some(t=>t.prof)) return aviso("Ya hay correcciones hechas: rebarajar ahora rompería la calibración.",true);
+  barajar(S.trabajos); S.trabajos.forEach((t,i)=>t.orden=i+1); pintarLote(); guardar();
+});
+$("#btn-vaciar").addEventListener("click",()=>{
+  if(!confirm("Se borran las entregas y todo lo corregido. ¿Seguir?")) return;
+  S.trabajos=[]; S.idx=0; pintarLote(); guardar(); subtitulos(); render();
+});
+
+$("#btn-fijar-muestra").addEventListener("click",()=>{
+  if(!S.trabajos.length) return aviso("Sube antes las entregas.",true);
+  if(S.criterios.length<2) return aviso("Define al menos dos criterios en el paso 1.",true);
+  S.muestra = Math.max(4,Math.min(+$("#in-muestra").value||8,S.trabajos.length-1));
+  S.tol = +$("#in-tol").value||0.5;
+  S.trabajos.forEach((t,i)=>{ if(!t.prof) t.rol = i<S.muestra ? "ancla" : "ciego"; });
+  S.idx = S.trabajos.findIndex(t=>t.rol==="ancla"&&!t.prof);
+  pintarLote(); guardar(); ir("calibracion"); aviso("Muestra fijada. Empieza la calibración.");
+});
+
+/* ═══════════════ predicción ═══════════════ */
+function contextoRubrica(){
+  return S.criterios.map(c=>`- ${c.id} · ${c.nombre} (peso ${Math.round(pesoNorm(c)*100)}%)\n  ${c.descriptor||"sin descriptor"}`).join("\n");
+}
+function anclas(excluirId){
+  return S.trabajos.filter(t=>t.prof&&t.id!==excluirId);
+}
+function bloqueAnclas(excluirId,limite=8){
+  const a = anclas(excluirId).slice(0,limite);
+  if(!a.length) return "Todavía no hay correcciones previas del profesor. Aplica la rúbrica tal cual está escrita.";
+  return a.map((t,i)=>{
+    const notas = S.criterios.map(c=>`${c.nombre}: ${t.prof.criterios[c.id]}`).join(" | ");
+    return `EJEMPLO ${i+1} (nota del profesor ${t.prof.total} sobre 10)
+Notas por criterio: ${notas}
+${t.prof.comentario?"Comentario del profesor: "+t.prof.comentario+"\n":""}Fragmento del trabajo:
+"""${anonimizar(t.texto,t.nombre).slice(0,1500)}"""`;
+  }).join("\n\n");
+}
+
+async function predecir(trabajo,{loo=false}={}){
+  const sistema = `Eres un corrector que replica el criterio de un profesor concreto, no un estándar ideal. Si el profesor es severo, eres severo; si es generoso, eres generoso. Tu objetivo es reproducir su severidad, no mejorarla.
+
+Reglas que no puedes romper:
+1. Toda puntuación va sujeta a una cita literal del trabajo. Si no encuentras cita que la sostenga, baja la confianza.
+2. La cita se copia exacta del texto, sin reescribir.
+3. No inventas contenido que no esté en el trabajo.
+4. Puntúas cada criterio de 0 a 10 con un decimal.
+5. Devuelves solo JSON.`;
+
+  const usuario = `ASIGNATURA: ${S.asig||"no indicada"}
+TAREA: ${S.tarea||"no indicada"}
+NIVEL ESPERADO: ${S.nivel||"no indicado"}
+
+RÚBRICA:
+${contextoRubrica()}
+
+CORRECCIONES PREVIAS DEL PROFESOR, que son tu calibración:
+${bloqueAnclas(loo?trabajo.id:null)}
+
+TRABAJO QUE DEBES PUNTUAR:
+"""${anonimizar(trabajo.texto,trabajo.nombre).slice(0,14000)}"""
+
+Devuelve:
+{"criterios":[{"id":"<id exacto de la rúbrica>","nota":7.5,"confianza":0.0-1.0,"ancla":"cita literal del trabajo","justificacion":"una o dos frases"}],
+ "confianza_global":0.0-1.0,
+ "comentario":"retroalimentación para el estudiante, de tres a cinco frases, en segunda persona, concreta y sin adular",
+ "duda":"qué te haría cambiar la nota, o cadena vacía"}`;
+
+  const r = await llamar([{role:"system",content:sistema},{role:"user",content:usuario}],{maxTok:2000});
+  const mapa={}, det={};
+  (r.criterios||[]).forEach(c=>{
+    const cr = S.criterios.find(x=>x.id===c.id) || S.criterios.find(x=>x.nombre===c.id);
+    if(!cr) return;
+    mapa[cr.id] = Math.max(0,Math.min(10,+c.nota||0));
+    det[cr.id] = {confianza:+c.confianza||0.5,ancla:c.ancla||"",justificacion:c.justificacion||""};
+  });
+  return {
+    criterios:mapa, detalle:det, total:totalPonderado(mapa),
+    confianza: +r.confianza_global || (Object.values(det).reduce((a,b)=>a+b.confianza,0)/(Object.keys(det).length||1)),
+    comentario:r.comentario||"", duda:r.duda||"", modelo:S.modelo, fecha:new Date().toISOString()
+  };
+}
+
+/* ═══════════════ métricas ═══════════════ */
+function pares(){
+  return S.trabajos.filter(t=>t.prof&&(t.loo||t.pred)).map(t=>({
+    t, prof:t.prof.total, maq:(t.loo||t.pred).total, dif:(t.loo||t.pred).total - t.prof.total
+  }));
+}
+function metricas(lista){
+  if(!lista.length) return null;
+  const difs = lista.map(p=>p.dif);
+  const mae = difs.reduce((a,b)=>a+Math.abs(b),0)/difs.length;
+  const sesgo = difs.reduce((a,b)=>a+b,0)/difs.length;
+  const max = Math.max(...difs.map(Math.abs));
+  const dentro = difs.filter(d=>Math.abs(d)<=S.tol).length/difs.length;
+  const porCrit = {};
+  S.criterios.forEach(c=>{
+    const d = lista.map(p=>{
+      const m=(p.t.loo||p.t.pred).criterios[c.id], pr=p.t.prof.criterios[c.id];
+      return (typeof m==="number"&&typeof pr==="number")?m-pr:null;
+    }).filter(x=>x!==null);
+    porCrit[c.id] = d.length ? {sesgo:d.reduce((a,b)=>a+b,0)/d.length, mae:d.reduce((a,b)=>a+Math.abs(b),0)/d.length} : null;
+  });
+  return {n:lista.length,mae,sesgo,max,dentro,porCrit};
+}
+function pearson(x,y){
+  const n=x.length; if(n<3) return null;
+  const mx=x.reduce((a,b)=>a+b,0)/n, my=y.reduce((a,b)=>a+b,0)/n;
+  let sxy=0,sxx=0,syy=0;
+  for(let i=0;i<n;i++){ const a=x[i]-mx,b=y[i]-my; sxy+=a*b; sxx+=a*a; syy+=b*b; }
+  return (sxx&&syy)? sxy/Math.sqrt(sxx*syy) : null;
+}
+
+/* ═══════════════ vista de calibración ═══════════════ */
+function pintarCalibracion(){
+  const hayMuestra = S.trabajos.some(t=>t.rol==="ancla");
+  $("#cal-vacia").classList.toggle("oculto",hayMuestra);
+  $("#cal-panel").classList.toggle("oculto",!hayMuestra);
+  if(!hayMuestra) return;
+
+  const m = metricas(pares());
+  $("#medidor-cal").innerHTML = `
+    <div><div class="v">${anclas().length}<span style="font-size:14px;color:var(--grafito)">/${S.trabajos.filter(t=>t.rol==="ancla").length}</span></div><div class="k">anclas puestas</div></div>
+    <div><div class="v ${m&&m.mae<=S.tol?"bien":m?"mal":""}">${m?m.mae.toFixed(2):"—"}</div><div class="k">error medio, puntos</div></div>
+    <div><div class="v">${m?(m.sesgo>0?"+":"")+m.sesgo.toFixed(2):"—"}</div><div class="k">sesgo, + más generosa</div></div>
+    <div><div class="v">${m?Math.round(m.dentro*100)+"%":"—"}</div><div class="k">dentro de ±${S.tol}</div></div>
+    <div><div class="v">${m?m.max.toFixed(1):"—"}</div><div class="k">peor desvío</div></div>`;
+
+  // parada adaptativa
+  const p = pares(), zona = $("#cal-parada");
+  zona.innerHTML="";
+  if(p.length>=6){
+    const ult = metricas(p.slice(-5));
+    const sesgoCrit = S.criterios.filter(c=>m.porCrit[c.id]&&Math.abs(m.porCrit[c.id].sesgo)>0.8);
+    const notas = p.map(x=>x.prof);
+    const cubreBajo = notas.some(n=>n<5), cubreAlto = notas.some(n=>n>=8);
+    if(ult.mae<=S.tol && !sesgoCrit.length && cubreBajo && cubreAlto){
+      zona.innerHTML = `<div class="aviso ok"><p><strong>El acuerdo se ha estabilizado.</strong> En los cinco últimos el error medio es ${ult.mae.toFixed(2)} puntos, ningún criterio arrastra sesgo y tu muestra cubre el suspenso y el sobresaliente. Puedes pasar al paso 4 sin corregir más.</p></div>`;
+    }else{
+      const faltan=[];
+      if(ult.mae>S.tol) faltan.push(`el error de los cinco últimos sigue en ${ult.mae.toFixed(2)}`);
+      if(sesgoCrit.length) faltan.push(`arrastra sesgo en ${sesgoCrit.map(c=>c.nombre).join(", ")}`);
+      if(!cubreBajo) faltan.push("no has anclado ningún suspenso, así que el extremo bajo va sin referencia");
+      if(!cubreAlto) faltan.push("no has anclado ningún sobresaliente");
+      zona.innerHTML = `<div class="aviso"><p><strong>Todavía no.</strong> ${faltan.join("; ")}.</p></div>`;
+    }
+  }
+
+  const t = S.trabajos[S.idx];
+  if(!t || t.rol!=="ancla"){
+    const sig = S.trabajos.findIndex(x=>x.rol==="ancla"&&!x.prof);
+    if(sig>=0){ S.idx=sig; return pintarCalibracion(); }
+    $("#cal-titulo").textContent = "Muestra completa";
+    $("#cal-meta").textContent = "Has anclado todos los trabajos de la muestra. Pasa al paso 4.";
+    $("#cal-sello").classList.add("oculto"); $("#btn-predecir").classList.add("oculto");
+    $("#cal-mis-notas").classList.add("oculto"); $("#cal-balanza").innerHTML=""; $("#cal-texto").textContent="";
+    return;
+  }
+  $("#cal-sello").classList.remove("oculto"); $("#btn-predecir").classList.remove("oculto");
+  $("#cal-titulo").textContent = "Trabajo "+t.orden+" · "+t.nombre;
+  $("#cal-meta").textContent = t.texto.split(/\s+/).length+" palabras. Orden aleatorio, no alfabético.";
+  $("#cal-texto").textContent = t.texto.slice(0,20000);
+
+  const sellada = !!t.pred;
+  $("#cal-sello").classList.toggle("listo",sellada);
+  $("#cal-sello-txt").textContent = sellada
+    ? "Predicción sellada el "+new Date(t.pred.fecha).toLocaleTimeString("es-ES")+". No la verás hasta que pongas tu nota."
+    : "La predicción todavía no se ha hecho.";
+  $("#btn-predecir").disabled = sellada;
+  $("#btn-predecir").textContent = sellada ? "Ya está sellada" : "Predecir a ciegas y sellar";
+
+  $("#cal-mis-notas").classList.toggle("oculto",!sellada);
+  if(sellada && !t.prof){
+    $("#cal-inputs").innerHTML = S.criterios.map(c=>`
+      <div class="fila" style="align-items:center;margin-bottom:9px">
+        <div style="flex:3"><div style="font-size:13.5px">${esc(c.nombre)}</div>
+        <div style="font-size:12px;color:var(--grafito)">${esc(c.descriptor||"")}</div></div>
+        <div style="flex:0 0 110px"><input type="number" min="0" max="10" step="0.5" data-c="${c.id}" placeholder="0–10"></div>
+      </div>`).join("");
+    $$("#cal-inputs input").forEach(i=>i.addEventListener("input",()=>{
+      const mapa={}; $$("#cal-inputs input").forEach(x=>{ if(x.value!=="") mapa[x.dataset.c]=+x.value; });
+      $("#cal-mi-total").textContent = Object.keys(mapa).length===S.criterios.length ? "tu nota "+totalPonderado(mapa).toFixed(2) : "—";
+    }));
+  }
+  $("#cal-balanza").innerHTML = t.prof ? balanza(t) : "";
+}
+
+function balanza(t){
+  const pred = t.loo||t.pred; if(!pred) return "";
+  const filas = S.criterios.map(c=>{
+    const a = t.prof.criterios[c.id], b = pred.criterios[c.id];
+    const d = (typeof a==="number"&&typeof b==="number") ? b-a : null;
+    const cls = d===null?"":(Math.abs(d)<=S.tol?"nulo":(Math.abs(d)>=1.5?"alto":""));
+    const det = pred.detalle?.[c.id];
+    return `<div class="brazo ${Math.abs(d||0)>=1.5?"divergente":""}">
+      <div class="lado"><div class="crit">${esc(c.nombre)}</div><div class="val">${a??"—"}</div></div>
+      <div class="fiel"><span class="desvio ${cls}">${d===null?"—":(d>0?"+":"")+d.toFixed(1)}</span></div>
+      <div class="lado der"><div class="crit">confianza ${det?Math.round(det.confianza*100)+"%":"—"}</div><div class="val">${b??"—"}</div></div>
+    </div>`;
+  }).join("");
+  const dT = pred.total - t.prof.total;
+  const citas = S.criterios.map(c=>{
+    const det = pred.detalle?.[c.id]; if(!det||!det.ancla) return "";
+    return `<div style="margin-bottom:11px"><div style="font-size:12.5px;color:var(--grafito)">${esc(c.nombre)}</div>
+      <div class="cita">${esc(det.ancla.slice(0,320))}</div>
+      <div style="font-size:13px">${esc(det.justificacion)}</div></div>`;
+  }).join("");
+  return `<div class="balanza">
+    <div class="balanza-cab"><div>Tu corrección</div><div>desvío</div><div>La máquina, a ciegas</div></div>
+    ${filas}
+    <div class="brazo" style="background:var(--papel)">
+      <div class="lado"><div class="crit">Nota ponderada</div><div class="val" style="font-size:23px">${t.prof.total.toFixed(2)}</div></div>
+      <div class="fiel"><span class="desvio ${Math.abs(dT)<=S.tol?"nulo":(Math.abs(dT)>=1.5?"alto":"")}">${(dT>0?"+":"")+dT.toFixed(2)}</span></div>
+      <div class="lado der"><div class="crit">Nota ponderada</div><div class="val" style="font-size:23px">${pred.total.toFixed(2)}</div></div>
+    </div>
+  </div>
+  ${pred.duda?`<div class="aviso"><p><strong>La máquina duda:</strong> ${esc(pred.duda)}</p></div>`:""}
+  <details class="doc" open><summary>Las citas en las que se apoyó</summary><div style="margin-top:11px">${citas||"<p style='color:var(--grafito)'>No devolvió citas.</p>"}</div></details>
+  <div class="acciones"><button class="btn" id="btn-siguiente">Siguiente trabajo</button></div>`;
+}
+
+$("#btn-predecir").addEventListener("click",async()=>{
+  const t = S.trabajos[S.idx]; if(!t) return;
+  const b=$("#btn-predecir"); b.disabled=true; b.textContent="Leyendo el trabajo...";
+  try{
+    t.pred = await predecir(t);
+    guardar(); pintarCalibracion(); aviso("Predicción sellada. Ahora tu nota.");
+  }catch(e){ aviso(e.message,true); b.disabled=false; b.textContent="Predecir a ciegas y sellar"; }
+});
+
+$("#btn-revelar").addEventListener("click",()=>{
+  const t = S.trabajos[S.idx]; if(!t||!t.pred) return;
+  const mapa={}; let faltan=false;
+  $$("#cal-inputs input").forEach(x=>{ if(x.value==="") faltan=true; else mapa[x.dataset.c]=+x.value; });
+  if(faltan) return aviso("Pon nota a todos los criterios antes de abrir la comparación.",true);
+  t.prof = {criterios:mapa,total:totalPonderado(mapa),comentario:$("#cal-coment").value.trim(),fecha:new Date().toISOString(),posicion:anclas().length+1};
+  $("#cal-coment").value="";
+  guardar(); pintarCalibracion(); subtitulos();
+});
+
+document.addEventListener("click",e=>{
+  if(e.target.id==="btn-siguiente"){
+    const sig = S.trabajos.findIndex(x=>x.rol==="ancla"&&!x.prof);
+    S.idx = sig>=0?sig:S.idx;
+    if(sig<0) aviso("Muestra completa. Ve al paso 4.");
+    pintarCalibracion(); window.scrollTo({top:0,behavior:"smooth"});
+  }
+});
+
+/* ═══════════════ corrección del lote ═══════════════ */
+function pintarCorreccion(){
+  const listo = anclas().length>=4;
+  $("#corr-bloqueada").classList.toggle("oculto",listo);
+  $("#corr-panel").classList.toggle("oculto",!listo);
+  if(!listo) return;
+  const ciegos = S.trabajos.filter(t=>t.rol==="ciego");
+  $("#n-ciegos").textContent = ciegos.filter(t=>!t.pred).length || ciegos.length;
+  $("#n-anclas2").textContent = anclas().length;
+
+  const conProp = S.trabajos.filter(t=>t.rol==="ciego"&&t.pred);
+  $("#corr-estado").innerHTML = conProp.length
+    ? `<div class="aviso ok"><p>${conProp.length} propuestas hechas con ${S.modelo}. La nota sigue sin firmar: eso es del paso 6.</p></div>` : "";
+
+  // triaje
+  const marcados = conProp.map(t=>{
+    const razones=[];
+    if(t.pred.confianza<0.6) razones.push("confianza "+Math.round(t.pred.confianza*100)+"%");
+    const n=t.pred.total;
+    [[5,0.4],[7,0.3],[9,0.3]].forEach(([f,r])=>{ if(Math.abs(n-f)<r) razones.push("pegada al "+f); });
+    const vals = S.criterios.map(c=>t.pred.criterios[c.id]).filter(v=>typeof v==="number");
+    if(vals.length>1 && (Math.max(...vals)-Math.min(...vals))>=5) razones.push("criterios contradictorios");
+    if(S.criterios.some(c=>!t.pred.detalle?.[c.id]?.ancla)) razones.push("algún criterio sin cita");
+    t.marcado = razones.length>0;
+    return {t,razones};
+  }).filter(x=>x.razones.length);
+
+  $("#triaje").innerHTML = marcados.length
+    ? `<table><thead><tr><th>Entrega</th><th style="width:78px">Propuesta</th><th>Por qué hay que mirarla</th></tr></thead><tbody>
+      ${marcados.map(({t,razones})=>`<tr><td>${esc(t.nombre)}</td><td class="num">${t.pred.total.toFixed(2)}</td>
+      <td>${razones.map(r=>`<span class="pastilla med">${esc(r)}</span>`).join(" ")}</td></tr>`).join("")}</tbody></table>
+      <p style="font-size:13px;color:var(--grafito);margin-top:11px">${marcados.length} de ${conProp.length}. Las demás se pueden firmar en bloque.</p>`
+    : (conProp.length?'<div class="aviso ok"><p>Ninguna propuesta levanta bandera. Aun así, mira dos al azar antes de firmar.</p></div>':'<p style="color:var(--grafito);font-size:13.5px">Nada corregido todavía.</p>');
+
+  $("#tabla-propuestas").innerHTML = conProp.length ? `<table><thead><tr><th style="width:52px">Orden</th><th>Entrega</th>
+    ${S.criterios.map(c=>`<th class="num" style="width:62px">${esc(c.nombre.slice(0,14))}</th>`).join("")}
+    <th style="width:70px">Nota</th><th style="width:70px">Confianza</th></tr></thead><tbody>
+    ${conProp.map(t=>`<tr><td class="num">${t.orden}</td><td>${esc(t.nombre)}</td>
+      ${S.criterios.map(c=>`<td class="num">${t.pred.criterios[c.id]??"—"}</td>`).join("")}
+      <td class="num"><strong>${t.pred.total.toFixed(2)}</strong></td>
+      <td class="num">${Math.round(t.pred.confianza*100)}%</td></tr>`).join("")}</tbody></table>`
+    : "";
+}
+
+async function lote(lista,cb){
+  S.parar=false;
+  $("#btn-parar").disabled=false;
+  const barra=$("#prog-corr"); barra.classList.remove("oculto");
+  let n=0;
+  for(const t of lista){
+    if(S.parar) break;
+    try{ await cb(t); }catch(e){ aviso(t.nombre+": "+e.message,true); }
+    n++; barra.querySelector("i").style.width=(n/lista.length*100)+"%";
+    guardar(); pintarCorreccion();
+  }
+  $("#btn-parar").disabled=true;
+  setTimeout(()=>barra.classList.add("oculto"),600);
+  subtitulos();
+}
+
+$("#btn-parar").addEventListener("click",()=>{ S.parar=true; aviso("Se para al terminar el actual."); });
+$("#btn-corregir").addEventListener("click",async()=>{
+  const pend = S.trabajos.filter(t=>t.rol==="ciego"&&!t.pred);
+  if(!pend.length) return aviso("No queda ninguno pendiente.");
+  $("#btn-corregir").disabled=true;
+  await lote(pend,async t=>{ t.pred = await predecir(t); });
+  $("#btn-corregir").disabled=false;
+  aviso("Lote corregido.");
+});
+$("#btn-loo").addEventListener("click",async()=>{
+  const a = S.trabajos.filter(t=>t.prof);
+  if(a.length<4) return aviso("Hacen falta al menos cuatro anclas.",true);
+  $("#btn-loo").disabled=true;
+  await lote(a,async t=>{ t.loo = await predecir(t,{loo:true}); });
+  $("#btn-loo").disabled=false;
+  pintarEquidad(); aviso("Reauditoría hecha. El paso 5 ya tiene datos.");
+});
+
+/* ═══════════════ equidad ═══════════════ */
+function pintarEquidad(){
+  const hay = S.trabajos.some(t=>t.prof&&t.loo);
+  $("#eq-vacia").classList.toggle("oculto",hay);
+  $("#eq-panel").classList.toggle("oculto",!hay);
+  if(!hay) return;
+
+  const lista = S.trabajos.filter(t=>t.prof&&t.loo).map(t=>({t,prof:t.prof.total,maq:t.loo.total,dif:t.loo.total-t.prof.total}));
+  const m = metricas(lista);
+
+  // cobertura
+  const notas = lista.map(x=>x.prof);
+  const bandas = [["menos de 5",n=>n<5],["de 5 a 7",n=>n>=5&&n<7],["de 7 a 9",n=>n>=7&&n<9],["9 o más",n=>n>=9]];
+  $("#eq-cobertura").innerHTML = `<table><thead><tr><th>Banda</th><th style="width:90px">Anclas</th><th>Lectura</th></tr></thead><tbody>
+    ${bandas.map(([n,f])=>{const c=notas.filter(f).length;
+      return `<tr><td>${n}</td><td class="num">${c}</td><td>${c===0?'<span class="pastilla mal">sin anclaje, la máquina extrapola aquí</span>':(c<2?'<span class="pastilla med">apenas anclado</span>':'<span class="pastilla viva">anclado</span>')}</td></tr>`;
+    }).join("")}</tbody></table>`;
+
+  // deriva
+  const pos = lista.map(x=>x.t.prof.posicion||x.t.orden), res = lista.map(x=>x.dif);
+  const r = pearson(pos,res);
+  const svg = $("#traza-deriva");
+  const maxAbs = Math.max(1.5,...res.map(Math.abs));
+  const px = i=>40+(pos[i]-Math.min(...pos))/(Math.max(1,Math.max(...pos)-Math.min(...pos)))*640;
+  const py = v=>75-(v/maxAbs)*60;
+  let g = `<line x1="40" y1="75" x2="700" y2="75" stroke="#B6C4C2"/>
+    <line x1="40" y1="${py(S.tol)}" x2="700" y2="${py(S.tol)}" stroke="#0F6E63" stroke-dasharray="3 4" opacity=".55"/>
+    <line x1="40" y1="${py(-S.tol)}" x2="700" y2="${py(-S.tol)}" stroke="#0F6E63" stroke-dasharray="3 4" opacity=".55"/>
+    <text x="4" y="${py(maxAbs)+11}" font-size="10" fill="#5B6E70" font-family="monospace">+${maxAbs.toFixed(1)}</text>
+    <text x="4" y="79" font-size="10" fill="#5B6E70" font-family="monospace">0</text>`;
+  lista.forEach((x,i)=>{ g += `<circle cx="${px(i)}" cy="${py(res[i])}" r="4" fill="${Math.abs(res[i])>S.tol?"#A8402F":"#0F6E63"}" opacity=".8"><title>${esc(x.t.nombre)}: ${res[i].toFixed(2)}</title></circle>`; });
+  if(r!==null){
+    const mx=pos.reduce((a,b)=>a+b,0)/pos.length, my=res.reduce((a,b)=>a+b,0)/res.length;
+    let sxy=0,sxx=0; pos.forEach((p,i)=>{sxy+=(p-mx)*(res[i]-my);sxx+=(p-mx)**2;});
+    const b1 = sxx?sxy/sxx:0, b0 = my-b1*mx;
+    const x0=Math.min(...pos), x1=Math.max(...pos);
+    g += `<line x1="${40}" y1="${py(b0+b1*x0)}" x2="${700}" y2="${py(b0+b1*x1)}" stroke="#152A2B" stroke-width="1.5" opacity=".65"/>`;
+  }
+  svg.innerHTML = g;
+  $("#eq-deriva").innerHTML = r===null
+    ? '<p style="color:var(--grafito);font-size:13.5px">Hacen falta más anclas para estimar la deriva.</p>'
+    : `<div class="medidor" style="margin-top:14px">
+        <div><div class="v ${Math.abs(r)>0.5?"mal":"bien"}">${r.toFixed(2)}</div><div class="k">correlación residuo–posición</div></div>
+        <div><div class="v">${m.mae.toFixed(2)}</div><div class="k">error medio</div></div>
+        <div><div class="v">${(m.sesgo>0?"+":"")+m.sesgo.toFixed(2)}</div><div class="k">sesgo global</div></div>
+       </div>
+       <div class="aviso ${Math.abs(r)>0.5?"grave":"ok"}"><p>${Math.abs(r)>0.5
+         ? (r>0?"El residuo crece con la posición: fuiste endureciendo el criterio a medida que corregías, así que los primeros salieron beneficiados.":"El residuo decrece con la posición: fuiste aflojando, y los últimos salieron beneficiados.")+" Merece la pena releer los extremos del orden."
+         : "No hay deriva apreciable. El criterio se mantuvo estable de principio a fin."}</p></div>`;
+
+  // divergencias
+  const div = [...lista].sort((a,b)=>Math.abs(b.dif)-Math.abs(a.dif)).slice(0,10);
+  $("#eq-divergencias").innerHTML = `<table><thead><tr><th>Entrega</th><th style="width:60px">Tú</th><th style="width:74px">Segunda lectura</th><th style="width:64px">Desvío</th><th>Dónde discrepan</th></tr></thead><tbody>
+    ${div.map(x=>{
+      const peor = S.criterios.map(c=>({c,d:(x.t.loo.criterios[c.id]??0)-(x.t.prof.criterios[c.id]??0)}))
+        .sort((a,b)=>Math.abs(b.d)-Math.abs(a.d))[0];
+      const det = peor?x.t.loo.detalle?.[peor.c.id]:null;
+      return `<tr><td>${esc(x.t.nombre)}</td><td class="num">${x.prof.toFixed(2)}</td><td class="num">${x.maq.toFixed(2)}</td>
+        <td class="num"><span class="pastilla ${Math.abs(x.dif)>=1.5?"mal":(Math.abs(x.dif)<=S.tol?"viva":"med")}">${(x.dif>0?"+":"")+x.dif.toFixed(2)}</span></td>
+        <td>${peor?`<strong>${esc(peor.c.nombre)}</strong> ${(peor.d>0?"+":"")+peor.d.toFixed(1)}${det&&det.ancla?`<div class="cita">${esc(det.ancla.slice(0,200))}</div>`:""}`:"—"}</td></tr>`;
+    }).join("")}</tbody></table>`;
+
+  // mapa
+  const todos = S.trabajos.filter(t=>t.pred||t.loo);
+  const color = v=>{ const x=Math.max(0,Math.min(10,v))/10; const r=Math.round(168-(168-15)*x), g=Math.round(64+(110-64)*x), b=Math.round(47+(99-47)*x); return `rgb(${r},${g},${b})`; };
+  const medias = S.criterios.map(c=>{
+    const v = todos.map(t=>(t.loo||t.pred).criterios[c.id]).filter(x=>typeof x==="number");
+    return v.length? v.reduce((a,b)=>a+b,0)/v.length : null;
+  });
+  $("#mapa").innerHTML = `<table><thead><tr><th style="width:150px">Entrega</th>
+    ${S.criterios.map(c=>`<th class="rot">${esc(c.nombre)}</th>`).join("")}<th style="width:56px">Nota</th></tr></thead><tbody>
+    ${todos.map(t=>{const p=t.loo||t.pred; return `<tr><td style="font-size:12px">${esc(t.nombre.slice(0,28))}</td>
+      ${S.criterios.map(c=>{const v=p.criterios[c.id]; return `<td class="celda" style="background:${typeof v==="number"?color(v):"#EEE"}">${typeof v==="number"?v.toFixed(1):"—"}</td>`;}).join("")}
+      <td class="num">${p.total.toFixed(1)}</td></tr>`;}).join("")}
+    <tr style="border-top:2px solid var(--linea-fuerte)"><td style="font-size:12px"><strong>Media de la clase</strong></td>
+      ${medias.map(v=>`<td class="celda" style="background:${v===null?"#EEE":color(v)}"><strong>${v===null?"—":v.toFixed(1)}</strong></td>`).join("")}<td></td></tr>
+    </tbody></table>
+    ${medias.some(v=>v!==null&&v<5)?`<div class="aviso"><p>La clase entera flojea en ${S.criterios.filter((c,i)=>medias[i]!==null&&medias[i]<5).map(c=>c.nombre).join(", ")}. Eso es materia para la próxima sesión, no una nota.</p></div>`:""}`;
+}
+
+$("#btn-informe").addEventListener("click",()=>{
+  const lista = S.trabajos.filter(t=>t.prof&&t.loo);
+  const m = metricas(lista.map(t=>({t,prof:t.prof.total,maq:t.loo.total,dif:t.loo.total-t.prof.total})));
+  const pos = lista.map(t=>t.prof.posicion||t.orden), res = lista.map(t=>t.loo.total-t.prof.total);
+  const r = pearson(pos,res);
+  let txt = `INFORME PRIVADO DE EQUIDAD · JustitIA
+${S.asig||""} · ${S.tarea||""}
+${new Date().toLocaleString("es-ES")} · modelo ${S.modelo}
+
+Documento de diagnóstico interno. No es prueba documental ni sustituye a la calificación firmada.
+
+ANCLAS: ${m.n}
+Error medio: ${m.mae.toFixed(2)} puntos
+Sesgo global: ${(m.sesgo>0?"+":"")+m.sesgo.toFixed(2)} (positivo = la segunda lectura puntúa más alto que tú)
+Peor desvío: ${m.max.toFixed(2)}
+Dentro de la tolerancia de ±${S.tol}: ${Math.round(m.dentro*100)}%
+Deriva (correlación residuo-posición): ${r===null?"no estimable":r.toFixed(3)}
+
+POR CRITERIO
+${S.criterios.map(c=>{const p=m.porCrit[c.id]; return `- ${c.nombre}: sesgo ${p?(p.sesgo>0?"+":"")+p.sesgo.toFixed(2):"—"}, error medio ${p?p.mae.toFixed(2):"—"}`;}).join("\n")}
+
+DIVERGENCIAS
+${lista.map(t=>({t,d:t.loo.total-t.prof.total})).sort((a,b)=>Math.abs(b.d)-Math.abs(a.d))
+  .map(({t,d})=>`- ${t.nombre}: tú ${t.prof.total.toFixed(2)} / segunda lectura ${t.loo.total.toFixed(2)} (${(d>0?"+":"")+d.toFixed(2)})`).join("\n")}
+`;
+  descargar(new Blob([txt],{type:"text/plain;charset=utf-8"}),"informe-equidad-privado.txt");
+});
+
+/* ═══════════════ salida ═══════════════ */
+function pintarSalida(){
+  const con = S.trabajos.filter(t=>t.pred||t.prof);
+  $("#estado-firma").textContent = S.trabajos.filter(t=>t.firmada).length+" firmadas";
+  $("#tabla-acta").innerHTML = con.length ? `<table><thead><tr><th style="width:46px">Nº</th><th>Entrega</th><th style="width:76px">Tu nota</th><th style="width:88px">Propuesta</th><th style="width:96px">Nota final</th><th style="width:96px">Estado</th></tr></thead><tbody>
+    ${con.map(t=>{
+      const prop = t.pred? t.pred.total : null;
+      const fin = t.notaFinal ?? (t.prof? t.prof.total : null);
+      return `<tr><td class="num">${t.orden}</td><td>${esc(t.nombre)}</td>
+        <td class="num">${t.prof?t.prof.total.toFixed(2):"—"}</td>
+        <td class="num">${prop!==null?prop.toFixed(2):"—"}</td>
+        <td><input type="number" min="0" max="10" step="0.1" data-fin="${t.id}" value="${fin!==null?fin.toFixed(2):""}" style="padding:4px 7px"></td>
+        <td>${t.firmada?'<span class="pastilla viva">firmada</span>':(t.marcado?'<span class="pastilla med">a revisar</span>':'<span class="pastilla">sin firmar</span>')}</td></tr>`;
+    }).join("")}</tbody></table>` : '<p style="color:var(--grafito);font-size:13.5px">Todavía no hay nada que firmar.</p>';
+  $$("[data-fin]").forEach(i=>i.addEventListener("change",()=>{
+    const t = S.trabajos.find(x=>x.id===i.dataset.fin);
+    t.notaFinal = i.value===""?null:+i.value; t.firmada = i.value!=="";
+    guardar(); pintarSalida(); subtitulos();
+  }));
+}
+$("#btn-firmar").addEventListener("click",()=>{
+  let n=0;
+  S.trabajos.forEach(t=>{
+    if(t.rol==="ciego"&&t.pred&&!t.marcado&&!t.firmada){ t.notaFinal=t.pred.total; t.firmada=true; n++; }
+    if(t.prof&&!t.firmada){ t.notaFinal=t.prof.total; t.firmada=true; n++; }
+  });
+  guardar(); pintarSalida(); subtitulos();
+  aviso(n+" notas firmadas. Las marcadas en triaje siguen esperándote.");
+});
+
+function descargar(blob,nombre){
+  const u = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href=u; a.download=nombre; a.click();
+  setTimeout(()=>URL.revokeObjectURL(u),1500);
+}
+
+$("#btn-csv").addEventListener("click",()=>{
+  const cab = ["orden","entrega","papel",...S.criterios.map(c=>c.nombre),"propuesta","tu_nota","nota_final","confianza","firmada"];
+  const filas = S.trabajos.filter(t=>t.pred||t.prof).map(t=>{
+    const p = t.pred||t.loo;
+    return [t.orden,t.nombre,t.rol==="ancla"?"corregido por el profesor":"a ciegas",
+      ...S.criterios.map(c=>(p?.criterios[c.id]??t.prof?.criterios[c.id]??"")),
+      p?p.total.toFixed(2):"", t.prof?t.prof.total.toFixed(2):"",
+      t.notaFinal!=null?t.notaFinal.toFixed(2):"", p?Math.round(p.confianza*100)+"%":"", t.firmada?"sí":"no"];
+  });
+  const csv = [cab,...filas].map(f=>f.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(";")).join("\n");
+  descargar(new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}),"notas.csv");
+});
+
+$("#btn-json").addEventListener("click",()=>{
+  const copia = JSON.parse(JSON.stringify(S)); delete copia.clave;
+  descargar(new Blob([JSON.stringify(copia,null,2)],{type:"application/json"}),"proyecto-justitia.json");
+});
+
+$("#btn-docx").addEventListener("click",async()=>{
+  const con = S.trabajos.filter(t=>t.pred);
+  if(!con.length) return aviso("No hay nada corregido.",true);
+  if(!window.docx){
+    const md = con.map(t=>`# ${t.nombre}\n\nNota: ${(t.notaFinal??t.pred.total).toFixed(2)}\n\n${t.pred.comentario}\n\n${S.criterios.map(c=>{
+      const d=t.pred.detalle?.[c.id];
+      return `## ${c.nombre} — ${t.pred.criterios[c.id]??"—"}\n${d?.justificacion||""}\n${d?.ancla?"> "+d.ancla:""}`;}).join("\n\n")}`).join("\n\n---\n\n");
+    descargar(new Blob([md],{type:"text/markdown"}),"retroalimentacion.md");
+    return aviso("La librería de Word no cargó; se descarga en Markdown.");
+  }
+  const {Document,Packer,Paragraph,HeadingLevel,TextRun} = window.docx;
+  const hijos=[];
+  con.forEach((t,i)=>{
+    const nota = (t.notaFinal ?? t.pred.total).toFixed(2);
+    hijos.push(new Paragraph({text:t.nombre,heading:HeadingLevel.HEADING_1,pageBreakBefore:i>0}));
+    hijos.push(new Paragraph({children:[new TextRun({text:`${S.asig||""} · ${S.tarea||""}`,italics:true,size:20})]}));
+    hijos.push(new Paragraph({children:[new TextRun({text:"Calificación: "+nota+" sobre 10",bold:true,size:26})],spacing:{before:200,after:200}}));
+    if(t.pred.comentario) hijos.push(new Paragraph({text:t.pred.comentario,spacing:{after:200}}));
+    S.criterios.forEach(c=>{
+      const d = t.pred.detalle?.[c.id];
+      hijos.push(new Paragraph({children:[new TextRun({text:`${c.nombre}: ${t.pred.criterios[c.id]??"—"}`,bold:true})],spacing:{before:160}}));
+      if(d?.justificacion) hijos.push(new Paragraph({text:d.justificacion}));
+      if(d?.ancla) hijos.push(new Paragraph({children:[new TextRun({text:"«"+d.ancla+"»",italics:true,size:20})],indent:{left:400}}));
+    });
+    hijos.push(new Paragraph({children:[new TextRun({text:"Calificación revisada y firmada por el profesor responsable de la asignatura.",size:17,italics:true})],spacing:{before:260}}));
+  });
+  const blob = await Packer.toBlob(new Document({sections:[{children:hijos}]}));
+  descargar(blob,"retroalimentacion.docx");
+});
+
+/* ═══════════════ navegación ═══════════════ */
+function ir(v){
+  $$(".vista").forEach(s=>s.classList.toggle("on",s.id==="v-"+v));
+  $$(".paso").forEach(p=>p.setAttribute("aria-current",p.dataset.v===v?"true":"false"));
+  if(v==="calibracion") pintarCalibracion();
+  if(v==="correccion") pintarCorreccion();
+  if(v==="equidad") pintarEquidad();
+  if(v==="salida") pintarSalida();
+  if(v==="lote") pintarLote();
+  window.scrollTo({top:0});
+}
+$$(".paso").forEach(p=>p.addEventListener("click",()=>ir(p.dataset.v)));
+function render(){ pintarCriterios(); pintarLote(); subtitulos(); }
+
+function subtitulos(){
+  $("#sub-ajustes").textContent = S.clave?S.modelo:"sin clave";
+  $("#sub-rubrica").textContent = S.criterios.length+" criterios";
+  $("#sub-lote").textContent = S.trabajos.length+" trabajos";
+  $("#sub-calibracion").textContent = anclas().length+" anclas";
+  $("#sub-correccion").textContent = S.trabajos.filter(t=>t.rol==="ciego"&&t.pred).length+" propuestas";
+  $("#sub-equidad").textContent = S.trabajos.some(t=>t.loo)?"auditado":"sin auditar";
+  $("#sub-salida").textContent = S.trabajos.filter(t=>t.firmada).length+" firmadas";
+}
+
+/* ═══════════════ ajustes ═══════════════ */
+$("#btn-clave").addEventListener("click",()=>{
+  const v = $("#in-clave").value.trim();
+  if(!v) return aviso("Pega la clave.",true);
+  localStorage.setItem("ia_openai_key",v); S.clave=v;
+  $("#estado-clave").innerHTML='<div class="aviso ok"><p>Clave guardada en este navegador.</p></div>';
+  subtitulos();
+});
+$("#in-modelo").addEventListener("change",e=>{
+  if(S.trabajos.some(t=>t.pred) && !confirm("Ya hay predicciones con "+S.modelo+". Cambiar de modelo invalida el acuerdo medido. ¿Seguir?")){
+    e.target.value = S.modelo; return;
+  }
+  S.modelo = e.target.value;
+  $("#in-temp").disabled = ES_56(S.modelo);
+  guardar(); subtitulos();
+});
+$("#in-temp").addEventListener("change",e=>{ S.temp=+e.target.value||0.2; guardar(); });
+$("#btn-anon").addEventListener("click",()=>{
+  S.anon = $("#in-anon").checked;
+  S.nombres = $("#in-nombres").value.split("\n").map(s=>s.trim()).filter(Boolean);
+  $("#estado-anon").textContent = S.anon?("activa, "+S.nombres.length+" nombres"):"desactivada";
+  guardar(); aviso("Guardado.");
+});
+["asig","tarea","nivel"].forEach(k=>{
+  $("#in-"+k).addEventListener("input",e=>{ S[k]=e.target.value; guardar(); });
+});
+$("#btn-borrar").addEventListener("click",()=>{
+  if(!confirm("Se borra todo el proyecto de este navegador. La clave se mantiene. ¿Seguir?")) return;
+  Object.assign(S,{criterios:[],trabajos:[],idx:0,asig:"",tarea:"",nivel:""});
+  if(db) db.transaction("proyecto","readwrite").objectStore("proyecto").delete("actual");
+  render(); ir("ajustes"); aviso("Proyecto borrado.");
+});
+
+/* ═══════════════ arranque ═══════════════ */
+(async function(){
+  await abrirDB(); await cargar();
+  S.clave = localStorage.getItem("ia_openai_key")||"";
+  if(S.clave){ $("#in-clave").value="••••••••••••"; $("#estado-clave").innerHTML='<div class="aviso ok"><p>Ya hay una clave guardada en este navegador.</p></div>'; }
+  $("#in-modelo").value = S.modelo;
+  $("#in-temp").value = S.temp; $("#in-temp").disabled = ES_56(S.modelo);
+  $("#in-anon").checked = S.anon; $("#in-nombres").value = (S.nombres||[]).join("\n");
+  $("#estado-anon").textContent = S.anon?("activa, "+(S.nombres||[]).length+" nombres"):"desactivada";
+  $("#in-asig").value=S.asig; $("#in-tarea").value=S.tarea; $("#in-nivel").value=S.nivel;
+  $("#in-muestra").value=S.muestra; $("#in-tol").value=S.tol;
+  render();
+  ir(S.clave? (S.trabajos.length? (anclas().length?"calibracion":"lote") : "rubrica") : "ajustes");
+})();
+
+})();
+</script>
+</body>
+</html>
