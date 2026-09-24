@@ -50,7 +50,7 @@ cuánto se le parece, y solo entonces propone el resto.
 
 ## Modelos
 
-`gpt-4o-mini` por defecto, y la familia `gpt-5.6` en sus variantes `luna`, `terra` y
+`gpt-6-luna` por defecto (temperatura 1), `gpt-4o-mini`, y la familia `gpt-5.6` en sus variantes `luna`, `terra` y
 `sol`. La llamada se adapta a cada familia. Cambiar de modelo a mitad de proyecto pide
 confirmación, porque invalida el acuerdo ya medido.
 
